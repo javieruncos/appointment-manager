@@ -82,3 +82,86 @@ export interface Booking extends Timestamps {
   tournamentMatchId?: EntityId | null;
   notes?: string;
 }
+
+export type TournamentFormat =
+  | "LEAGUE"
+  | "SINGLE_ELIMINATION"
+  | "GROUPS_THEN_KNOCKOUT";
+
+export type TournamentStatus =
+  | "DRAFT"
+  | "REGISTRATION_OPEN"
+  | "REGISTRATION_CLOSED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED";
+
+export type TournamentRegistrationStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "REJECTED"
+  | "WITHDRAWN";
+
+export type TournamentMatchPhase =
+  | "LEAGUE"
+  | "GROUP"
+  | "ROUND_OF_16"
+  | "QUARTER_FINAL"
+  | "SEMI_FINAL"
+  | "THIRD_PLACE"
+  | "FINAL";
+
+export type TournamentMatchStatus =
+  | "PENDING_SCHEDULE"
+  | "SCHEDULED"
+  | "PLAYING"
+  | "FINISHED"
+  | "POSTPONED"
+  | "CANCELLED";
+
+export interface TournamentRegistration {
+  teamName: string;
+  contactName: string;
+  contactPhone: string;
+  contactEmail?: string;
+  status: TournamentRegistrationStatus;
+  registeredAt?: Date;
+}
+
+export interface Tournament extends Timestamps {
+  id?: EntityId;
+  name: string;
+  category: string;
+  description?: string;
+  format: TournamentFormat;
+  status: TournamentStatus;
+  startDate: LocalDate;
+  endDate: LocalDate;
+  registrationDeadline?: LocalDate;
+  maxTeams: number;
+  entryFee: number;
+  courtIds: EntityId[];
+  registrations: TournamentRegistration[];
+  notes?: string;
+}
+
+export interface TournamentMatch extends Timestamps {
+  id?: EntityId;
+  tournamentId: EntityId;
+  phase: TournamentMatchPhase;
+  groupName?: string;
+  round: number;
+  matchNumber: number;
+  homeTeamName: string;
+  awayTeamName: string;
+  courtId?: EntityId | null;
+  bookingId?: EntityId | null;
+  date?: LocalDate | null;
+  startTime?: LocalTime | null;
+  endTime?: LocalTime | null;
+  status: TournamentMatchStatus;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  winnerTeamName?: string | null;
+  notes?: string;
+}
