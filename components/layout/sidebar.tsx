@@ -11,6 +11,7 @@ import {
   Phone,
   Plus,
   Settings2,
+  Trophy,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,11 @@ const NAV_ITEMS = [
     href: "/courts",
     label: "Canchas y Tarifas",
     icon: Settings2,
+  },
+  {
+    href: "/tournaments",
+    label: "Torneos",
+    icon: Trophy,
   },
 ];
 

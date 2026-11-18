@@ -2,14 +2,22 @@ import { cache } from "react";
 import { getBookings } from "@/lib/services/booking.service";
 import { getCourts } from "@/lib/services/court.service";
 import { getTournamentMatches } from "@/lib/services/tournament-match.service";
+import { getTournaments } from "@/lib/services/tournament.service";
 import { getVenueConfig } from "@/lib/services/venue.service";
 import {
   toBookingView,
   toCourtView,
   toMatchView,
+  toTournamentView,
   toVenueView,
 } from "@/lib/utils/view-models";
-import type { CourtView, DashboardData, VenueView } from "@/types/view";
+import type {
+  CourtView,
+  DashboardData,
+  MatchView,
+  TournamentView,
+  VenueView,
+} from "@/types/view";
 
 const FALLBACK_VENUE: VenueView = {
   id: "fallback-venue",
@@ -58,6 +66,21 @@ export async function getCourtsForSettings(): Promise<CourtView[]> {
   const courts = await safeList(() => getCourts(false), "las canchas");
 
   return courts.map(toCourtView);
+}
+
+export async function getTournamentsForPage(): Promise<TournamentView[]> {
+  const tournaments = await safeList(() => getTournaments(), "los torneos");
+
+  return tournaments.map(toTournamentView);
+}
+
+export async function getTournamentMatchesForPage(): Promise<MatchView[]> {
+  const matches = await safeList(
+    () => getTournamentMatches(),
+    "los partidos de torneo",
+  );
+
+  return matches.map(toMatchView);
 }
 
 export async function getDashboardData(date: string): Promise<DashboardData> {

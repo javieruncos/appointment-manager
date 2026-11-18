@@ -8,8 +8,10 @@ import type {
   CourtStatus,
   CourtSurface,
   OperatingHour,
+  TournamentFormat,
   TournamentMatchPhase,
   TournamentMatchStatus,
+  TournamentStatus,
 } from "@/types/domain";
 
 export type VenueView = {
@@ -62,6 +64,22 @@ export type MatchView = {
   matchNumber: number;
   homeScore?: number | null;
   awayScore?: number | null;
+};
+
+export type TournamentView = {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  format: TournamentFormat;
+  status: TournamentStatus;
+  startDate: string;
+  endDate: string;
+  registrationDeadline?: string;
+  maxTeams: number;
+  entryFee: number;
+  courtIds: string[];
+  notes?: string;
 };
 
 export type DashboardData = {

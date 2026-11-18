@@ -8,13 +8,16 @@ import type {
   CourtStatus,
   CourtSurface,
   OperatingHour,
+  TournamentFormat,
   TournamentMatchPhase,
   TournamentMatchStatus,
+  TournamentStatus,
 } from "@/types/domain";
 import type {
   BookingView,
   CourtView,
   MatchView,
+  TournamentView,
   VenueView,
 } from "@/types/view";
 
@@ -60,6 +63,14 @@ function asId(value: unknown): string {
   }
 
   return "";
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map(asId).filter((id) => id.length > 0);
 }
 
 function toOperatingHours(value: unknown): OperatingHour[] {
@@ -168,6 +179,26 @@ export function toBookingView(doc: unknown): BookingView {
     customer: toCustomer(raw.customer),
     payment: toPayment(raw.payment),
     tournamentMatchId: optionalString(raw.tournamentMatchId),
+    notes: optionalString(raw.notes),
+  };
+}
+
+export function toTournamentView(doc: unknown): TournamentView {
+  const raw = toPlainRecord(doc);
+
+  return {
+    id: asId(raw._id ?? raw.id),
+    name: asString(raw.name),
+    category: asString(raw.category),
+    description: optionalString(raw.description),
+    format: asString(raw.format) as TournamentFormat,
+    status: asString(raw.status) as TournamentStatus,
+    startDate: asString(raw.startDate),
+    endDate: asString(raw.endDate),
+    registrationDeadline: optionalString(raw.registrationDeadline),
+    maxTeams: asNumber(raw.maxTeams),
+    entryFee: asNumber(raw.entryFee),
+    courtIds: toStringArray(raw.courtIds),
     notes: optionalString(raw.notes),
   };
 }

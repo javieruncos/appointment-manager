@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getDashboardData } from "@/lib/data/dashboard";
 import { getTodayInVenueTimeZone, isValidLocalDate } from "@/lib/utils/date";
 import { ScheduleBoard } from "@/components/schedule/schedule-board";
@@ -7,6 +8,7 @@ export const instant = false;
 export default async function DashboardPage({
   searchParams,
 }: PageProps<"/">) {
+  await connection();
   const params = await searchParams;
   const today = getTodayInVenueTimeZone();
   const requestedDate = Array.isArray(params.date)
