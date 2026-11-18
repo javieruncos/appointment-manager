@@ -5,7 +5,13 @@ import { createBooking, updateBookingStatus } from "@/lib/services/booking.servi
 import { bookingSchema } from "@/lib/validations/booking.schema";
 import type { BookingStatus } from "@/types/domain";
 
-export type BookingStatusAction = Exclude<BookingStatus, "PENDING_PAYMENT">;
+export type BookingStatusAction = "confirm" | "cancel" | "reopen";
+
+const ACTION_TO_STATUS: Record<BookingStatusAction, BookingStatus> = {
+  confirm: "CONFIRMED",
+  cancel: "CANCELLED",
+  reopen: "PENDING_PAYMENT",
+};
 
 export async function createBookingAction(rawInput: unknown) {
   try {
@@ -35,9 +41,10 @@ export async function createBookingAction(rawInput: unknown) {
 
 export async function updateBookingStatusAction(
   id: string,
-  status: BookingStatusAction
+  action: BookingStatusAction
 ) {
   try {
+    const status = ACTION_TO_STATUS[action];
     const updated = await updateBookingStatus(id, status);
 
     if (!updated) {

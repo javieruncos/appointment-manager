@@ -2,6 +2,133 @@
 sessionId: session-261118-130553-osmi
 ---
 
+# Auditoría: Flujo de actualización de estado de reservas
+
+### Causa Raíz
+
+**Desajuste entre los valores de acción de la UI y los valores de estado del dominio.**
+
+La UI (`BookingDetailSheet.tsx`) envía nombres de acción en minúsculas (`"confirm"`, `"reopen"`, `"cancel"`), pero el esquema Zod y el servicio esperan valores de estado del dominio en mayúsculas (`"CONFIRMED"`, `"PENDING_PAYMENT"`, `"CANCELLED"`).
+
+No existe ninguna capa de traducción entre ambos.
+
+### Evidencia
+
+#### 1. BookingDetailSheet.tsx (UI) — Líneas 90-119
+
+La función `getStatusActions()` devuelve acciones con valores de acción:
+
+| Acción | Valor enviado | Línea |
+|---|---|---|
+| Confirmar | `"confirm"` | 95 |
+| Reabrir | `"reopen"` | 103 |
+| Cancelar | `"cancel"` | 112 |
+
+Estos valores se tipan como `BookingStatusAction` y se pasan a `updateBookingStatusAction(booking.id, action)` (línea 157).
+
+#### 2. booking.actions.ts (Server Action) — Línea 8
+
+```typescript
+export type BookingStatusAction = Exclude<BookingStatus, "PENDING_PAYMENT">;
+```
+
+Esto significa que `BookingStatusAction` debería ser `"CONFIRMED" | "COMPLETED" | "CANCELLED"`.
+
+Pero la UI usa `"confirm"`, `"reopen"`, `"cancel"` que **no coinciden** con ningún valor de `BookingStatusAction`. De hecho, TypeScript ya detecta este error:
+
+```
+Type '"confirm"' is not assignable to type 'BookingStatusAction'
+Type '"reopen"' is not assignable to type 'BookingStatusAction'
+Type '"cancel"' is not assignable to type 'BookingStatusAction'
+```
+
+#### 3. booking.service.ts (Servicio) — Líneas 135-136
+
+```typescript
+export async function updateBookingStatus(id: string, rawStatus: string) {
+  const { status: newStatus } = updateBookingSchema.parse({ status: rawStatus });
+```
+
+El servicio pasa el valor directamente a `updateBookingSchema.parse()`, que valida contra:
+
+#### 4. booking.schema.ts (Esquema) — Líneas 63-68
+
+```typescript
+status: z.enum([
+  "PENDING_PAYMENT",
+  "CONFIRMED",
+  "COMPLETED",
+  "CANCELLED",
+]),
+```
+
+#### 5. types/domain.ts — Líneas 13-17
+
+```typescript
+export type BookingStatus =
+  | "PENDING_PAYMENT"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "CANCELLED";
+```
+
+### Análisis del Flujo Roto
+
+```
+UI (BookingDetailSheet)
+  ↓ envía "confirm", "reopen", "cancel"
+Server Action (updateBookingStatusAction)
+  ↓ pasa el valor sin transformación
+Servicio (updateBookingStatus)
+  ↓ parsea con updateBookingSchema
+Zod (booking.schema.ts)
+  ↓ espera "CONFIRMED", "PENDING_PAYMENT", "CANCELLED"
+  ❌ FALLA: "Invalid option: expected one of PENDING_PAYMENT, CONFIRMED, COMPLETED, CANCELLED"
+```
+
+### Mapeo Necesario
+
+| Acción de UI | Estado del dominio | Razón |
+|---|---|---|
+| `"confirm"` | `"CONFIRMED"` | Confirmar la reserva |
+| `"cancel"` | `"CANCELLED"` | Cancelar la reserva |
+| `"reopen"` | `"PENDING_PAYMENT"` | Reabrir a estado pendiente de pago |
+
+### Propuesta de Corrección
+
+**Opción A (Recomendada): Crear un mapeo en la Server Action**
+
+Agregar en `booking.actions.ts`:
+
+```typescript
+const ACTION_TO_STATUS: Record<string, BookingStatus> = {
+  "confirm": "CONFIRMED",
+  "cancel": "CANCELLED",
+  "reopen": "PENDING_PAYMENT",
+};
+```
+
+Actualizar `updateBookingStatusAction` para traducir antes de llamar al servicio.
+
+Ventajas:
+- Mantiene la semántica de acciones en la UI.
+- Centraliza el mapeo en una sola capa.
+- El servicio sigue recibiendo valores de estado válidos.
+
+**Opción B: Usar valores de estado directamente en la UI**
+
+Cambiar `getStatusActions()` para devolver `"CONFIRMED"`, `"CANCELLED"`, `"PENDING_PAYMENT"` directamente.
+
+Ventajas:
+- Sin capa de traducción adicional.
+- Menos código.
+
+Desventajas:
+- La UI expone valores internos del dominio.
+- Si el dominio cambia, hay que tocar la UI.
+
+**Recomendación: Opción A.**
+
 # Requisitos
 
 ### Objetivo

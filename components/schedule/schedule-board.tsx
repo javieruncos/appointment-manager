@@ -198,8 +198,6 @@ export function ScheduleBoard({
           onCreated={handleCreated}
           venue={venue}
           courts={courts}
-          bookings={bookings}
-          matches={matches}
           date={date}
           initialCourtId={selectedSlot?.courtId}
           initialStartTime={selectedSlot?.startTime}

@@ -15,7 +15,7 @@ import {
   shiftDate,
   toInterval,
   type ScheduleSlot,
-} from "@/lib/utils/schedule";
+} from "@/lib/utils/schedule-backend";
 
 const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
   "PENDING_PAYMENT",

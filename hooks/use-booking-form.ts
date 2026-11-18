@@ -3,27 +3,43 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { bookingSchema, type BookingInput } from "@/lib/validations/booking.schema";
 import { createBookingAction } from "@/app/actions/booking.actions";
-import type { VenueView, CourtView } from "@/types/view"; // 1. Importa tus tipos
+import { timeToMinutes, minutesToTime } from "@/lib/utils/schedule-calc";
+import type { VenueView, CourtView } from "@/types/view";
 
-// 2. Define el tipo de las propiedades que recibe el hook
 export type UseBookingFormProps = {
   venue: VenueView;
   courts: CourtView[];
+  date: string;
+  initialCourtId?: string;
+  initialStartTime?: string;
   onCreated?: () => void;
   onRequestClose?: () => void;
 };
 
-export function useBookingForm({ venue, courts, onCreated, onRequestClose }: UseBookingFormProps) {
+export function useBookingForm({
+  venue,
+  courts,
+  date,
+  initialCourtId,
+  initialStartTime,
+  onCreated,
+  onRequestClose,
+}: UseBookingFormProps) {
   const [formError, setFormError] = useState<string | null>(null);
+
+  const start = initialStartTime ?? "09:00";
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = startMinutes + 60;
+  const end = minutesToTime(endMinutes);
 
   const form = useForm<BookingInput>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      courtId: courts[0]?.id ?? "",
-      date: new Date().toISOString().split("T")[0],
-      startTime: "09:00",
-      endTime: "10:00",
-      // durationMinutes eliminado de aquí ya que no forma parte del esquema raíz
+      courtId: initialCourtId ?? courts[0]?.id ?? "",
+      date,
+      startTime: start,
+      endTime: end,
+      type: "CASUAL",
       customer: {
         name: "",
         phone: "",
@@ -45,7 +61,7 @@ export function useBookingForm({ venue, courts, onCreated, onRequestClose }: Use
     const result = await createBookingAction(data);
 
     if (!result.success) {
-      setFormError(result.error);
+      setFormError(result.error ?? "Ocurrió un error inesperado.");
       return;
     }
 
