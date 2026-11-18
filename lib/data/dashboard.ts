@@ -9,7 +9,7 @@ import {
   toMatchView,
   toVenueView,
 } from "@/lib/utils/view-models";
-import type { DashboardData, VenueView } from "@/types/view";
+import type { CourtView, DashboardData, VenueView } from "@/types/view";
 
 const FALLBACK_VENUE: VenueView = {
   id: "fallback-venue",
@@ -53,6 +53,12 @@ export const getShellVenue = cache(async (): Promise<VenueView> => {
 
   return doc ? toVenueView(doc) : FALLBACK_VENUE;
 });
+
+export async function getCourtsForSettings(): Promise<CourtView[]> {
+  const courts = await safeList(() => getCourts(false), "las canchas");
+
+  return courts.map(toCourtView);
+}
 
 export async function getDashboardData(date: string): Promise<DashboardData> {
   const [venue, courts, bookings, matches] = await Promise.all([
