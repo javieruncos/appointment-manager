@@ -8,6 +8,10 @@ import {
 import { revalidatePath } from "next/cache";
 import type { CourtInput, UpdateCourtInput } from "@/lib/validations/court.schema";
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export async function createCourtAction(input: CourtInput) {
   try {
     const court = await createCourt(input);
@@ -19,10 +23,10 @@ export async function createCourtAction(input: CourtInput) {
       success: true, 
       data: JSON.parse(JSON.stringify(court)) 
     };
-  } catch (error: any) {
+  } catch (error) {
     return { 
       success: false, 
-      error: error.message || "Error al crear la cancha" 
+      error: getErrorMessage(error, "Error al crear la cancha")
     };
   }
 }
@@ -38,10 +42,10 @@ export async function updateCourtAction(id: string, input: UpdateCourtInput) {
       success: true, 
       data: updated ? JSON.parse(JSON.stringify(updated)) : null 
     };
-  } catch (error: any) {
+  } catch (error) {
     return { 
       success: false, 
-      error: error.message || "No se pudo actualizar la cancha" 
+      error: getErrorMessage(error, "No se pudo actualizar la cancha")
     };
   }
 }
@@ -54,10 +58,10 @@ export async function deleteCourtAction(id: string) {
     revalidatePath("/admin/courts");
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     return { 
       success: false, 
-      error: error.message || "No se pudo eliminar la cancha" 
+      error: getErrorMessage(error, "No se pudo eliminar la cancha")
     };
   }
 }

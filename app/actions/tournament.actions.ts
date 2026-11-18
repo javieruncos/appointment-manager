@@ -1,18 +1,16 @@
 "use server";
 
-import { 
-  getTournaments, 
-  createTournament, 
-  updateTournament 
-} from "@/lib/services/tournament.service";
-import { 
-  getTournamentMatches, 
-  createTournamentMatch, 
-  updateTournamentMatchScore 
-} from "@/lib/services/tournament-match.service";
+import { createTournament } from "@/lib/services/tournament.service";
+import { updateTournamentMatchScore } from "@/lib/services/tournament-match.service";
 import { revalidatePath } from "next/cache";
-import type { TournamentInput, UpdateTournamentInput } from "@/lib/validations/tournament.schema";
-import type { TournamentMatchInput } from "@/lib/validations/tournament.schema";
+import type {
+  TournamentInput,
+  UpdateTournamentMatchInput,
+} from "@/lib/validations/tournament.schema";
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
 
 // --- Acciones de Torneos ---
 export async function createTournamentAction(input: TournamentInput) {
@@ -21,22 +19,22 @@ export async function createTournamentAction(input: TournamentInput) {
     revalidatePath("/admin/tournaments");
     revalidatePath("/tournaments");
     return { success: true, data: JSON.parse(JSON.stringify(tournament)) };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Error al crear el torneo" };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error, "Error al crear el torneo") };
   }
 }
 
 // --- Acciones de Partidos de Torneo ---
 export async function updateTournamentMatchScoreAction(
   id: string, 
-  score: { homeScore?: number | null; awayScore?: number | null; status?: string }
+  score: UpdateTournamentMatchInput
 ) {
   try {
     const updated = await updateTournamentMatchScore(id, score);
     revalidatePath("/admin/tournaments");
     revalidatePath("/tournaments");
     return { success: true, data: updated ? JSON.parse(JSON.stringify(updated)) : null };
-  } catch (error: any) {
-    return { success: false, error: error.message || "No se pudo actualizar el resultado" };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error, "No se pudo actualizar el resultado") };
   }
 }
