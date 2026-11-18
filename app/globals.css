@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #090b0e;
+  --color-rail: #0c0e12;
+  --color-header: #0e1118;
+  --color-surface-1: #10131a;
+  --color-surface-2: #141820;
+  --color-surface-3: #1f232a;
+  --color-sheet: #0d1015;
+  --color-line: #20242b;
+  --color-line-strong: #2c313a;
+  --color-ink: #eff2f8;
+  --color-ink-muted: #8b95a7;
+  --color-ink-faint: #5c6472;
+  --color-lime: #c6ff00;
+  --color-lime-strong: #d4ff33;
+  --color-lime-ink: #0b0f00;
+  --color-emerald: #10b981;
+  --color-emerald-bright: #4edea3;
+  --color-cyan: #22d3ee;
+  --color-cyan-strong: #06b6d4;
+  --color-amber: #f59e0b;
+  --color-amber-bright: #fbbf24;
+  --color-coral: #f43f5e;
+  --color-coral-bright: #fda4af;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  --shadow-sheet: 0 20px 25px -5px rgb(0 0 0 / 0.8), 0 8px 10px -6px rgb(0 0 0 / 0.8);
+  --shadow-lime: 0 0 12px rgb(198 255 0 / 0.18);
+  --shadow-emerald: 0 0 12px rgb(16 185 129 / 0.12);
+
+  --spacing-drawer: 26.25rem;
+  --container-drawer: 26.25rem;
+
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--letter-spacing: 0.01em;
+
+  --animate-sheet-in: sheet-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-fade-in: fade-in 160ms ease-out;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    scrollbar-color: var(--color-line-strong) transparent;
+    scrollbar-width: thin;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-lime);
+    color: var(--color-lime-ink);
+  }
+
+  dialog {
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+  }
+
+  dialog::backdrop {
+    background: rgb(4 6 8 / 0.78);
+    backdrop-filter: blur(3px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

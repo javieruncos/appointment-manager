@@ -7,6 +7,7 @@ import {
   tournamentMatchSchema,
   updateTournamentMatchSchema,
   type TournamentMatchInput,
+  type UpdateTournamentMatchInput,
 } from "@/lib/validations/tournament.schema";
 
 export async function getTournamentMatches(filters: { tournamentId?: string; courtId?: string } = {}) {
@@ -54,7 +55,7 @@ export async function createTournamentMatch(input: TournamentMatchInput) {
 
 export async function updateTournamentMatchScore(
   id: string,
-  score: { homeScore?: number | null; awayScore?: number | null; status?: string }
+  score: UpdateTournamentMatchInput
 ) {
   const data = updateTournamentMatchSchema.parse(score);
 
@@ -77,7 +78,7 @@ export async function updateTournamentMatchScore(
   match.awayScore = data.awayScore;
   
   if (data.status) {
-    match.status = data.status as any;
+    match.status = data.status;
   }
 
   if (match.status === "FINISHED" && data.homeScore !== data.awayScore) {
