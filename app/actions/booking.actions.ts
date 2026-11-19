@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createBooking, updateBookingStatus } from "@/lib/services/booking.service";
+import { createBooking, updateBookingStatus , deleteBooking} from "@/lib/services/booking.service";
 import { bookingSchema } from "@/lib/validations/booking.schema";
 import type { BookingStatus } from "@/types/domain";
 
@@ -65,5 +65,19 @@ export async function updateBookingStatusAction(
       success: false,
       error: message,
     };
+  }
+}
+
+export async function deleteBookingAction(id: string) {
+  try {
+    // Llamamos directamente al servicio pasándole el id que viene por parámetro
+    await deleteBooking(id);
+    
+    // Refrescamos la grilla para que el horario aparezca libre al instante
+    revalidatePath("/"); 
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error al eliminar la reserva";
+    return { success: false, error: message };
   }
 }

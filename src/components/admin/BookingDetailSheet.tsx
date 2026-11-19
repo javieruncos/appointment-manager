@@ -9,11 +9,13 @@ import {
   MessageSquareText,
   Phone,
   RotateCcw,
+  Trash2,
   User,
   Wallet,
   XCircle,
 } from "lucide-react";
 import {
+  deleteBookingAction,
   updateBookingStatusAction,
   type BookingStatusAction,
 } from "@/app/actions/booking.actions";
@@ -126,9 +128,10 @@ export function BookingDetailSheet({
 }: BookingDetailSheetProps) {
   const [pendingAction, setPendingAction] =
     useState<BookingStatusAction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const isSubmitting = pendingAction !== null;
+  const isSubmitting = pendingAction !== null || isDeleting;
   const { start, end } = normalizeRange(booking.startTime, booking.endTime);
   const duration = end - start;
   const paid = booking.payment.paidAmount;
@@ -172,6 +175,42 @@ export function BookingDetailSheet({
       );
     } finally {
       setPendingAction(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (isSubmitting) {
+      return;
+    }
+
+    const confirmed = confirm(
+      "¿Estás seguro de eliminar esta reserva? Esta acción no se puede deshacer."
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    setActionError(null);
+
+    try {
+      const result = await deleteBookingAction(booking.id);
+
+      if (!result.success) {
+        setActionError(
+          result.error ?? "No se pudo eliminar la reserva."
+        );
+        return;
+      }
+
+      onUpdated();
+      onClose();
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "No se pudo eliminar la reserva."
+      );
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -224,6 +263,23 @@ export function BookingDetailSheet({
               </Button>
             ))}
           </div>
+
+          <Button
+            variant="danger"
+            className="sm:col-span-2"
+            onClick={handleDelete}
+            disabled={isSubmitting}
+          >
+            {isDeleting ? (
+              <Loader2
+                aria-hidden="true"
+                className="size-4 animate-spin"
+              />
+            ) : (
+              <Trash2 aria-hidden="true" className="size-4" />
+            )}
+            Eliminar Definitivamente
+          </Button>
 
           <p className="text-caption text-ink-faint">
             Los cambios se reflejan inmediatamente en la agenda.

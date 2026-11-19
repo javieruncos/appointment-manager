@@ -85,6 +85,11 @@ async function hasOverlappingSchedule(
     }
   }
 
+  console.log("Horario a evaluar:", target);
+  console.log("Reservas activas encontradas:", bookings);
+  console.log("Partidos activos encontrados:", matches);
+  console.log("Slots ocupados totales:", occupiedSlots);
+
   return occupiedSlots.some((candidate) =>
     intervalsOverlap(target, toInterval(candidate))
   );
@@ -160,4 +165,18 @@ export async function updateBookingStatus(id: string, rawStatus: string) {
   booking.status = newStatus;
   await booking.save();
   return booking;
+}
+
+export async function deleteBooking(id: string) {
+  await connectDB();
+  if (!isValidObjectId(id)) {
+    throw new Error("ID de reserva inválido");
+  }
+
+  const deletedBooking = await BookingModel.findByIdAndDelete(id);
+  if (!deletedBooking) {
+    throw new Error("No se encontró la reserva para eliminar");
+  }
+
+  return deletedBooking;
 }

@@ -8,13 +8,13 @@ import { Select } from "@/components/ui/input";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CalendarDays, 
-  Clock, 
-  User, 
-  Phone, 
-  Wallet, 
-  CircleAlert 
+import {
+  CalendarDays,
+  Clock,
+  User,
+  Phone,
+  Wallet,
+  CircleAlert
 } from "lucide-react";
 
 export type NewBookingFormProps = {
