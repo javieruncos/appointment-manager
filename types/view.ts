@@ -12,6 +12,7 @@ import type {
   TournamentMatchPhase,
   TournamentMatchStatus,
   TournamentStatus,
+  UserRole,
 } from "@/types/domain";
 
 export type VenueView = {
@@ -64,6 +65,14 @@ export type MatchView = {
   matchNumber: number;
   homeScore?: number | null;
   awayScore?: number | null;
+};
+
+export type UserView = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
 };
 
 export type TournamentView = {
