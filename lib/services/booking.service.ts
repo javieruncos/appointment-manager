@@ -3,19 +3,27 @@ import { connectDB } from "@/lib/db/connect";
 import { BookingModel } from "@/lib/db/models/Booking";
 import { CourtModel } from "@/lib/db/models/Court";
 import { TournamentMatchModel } from "@/lib/db/models/TournamentMatch";
+import { VenueConfigModel } from "@/lib/db/models/VenueConfig";
 import {
   bookingSchema,
   updateBookingSchema,
   type BookingInput,
 } from "@/lib/validations/booking.schema";
 import type { BookingStatus, TournamentMatchStatus } from "@/types/domain";
+import type { CourtView } from "@/types/view";
 import {
   intervalsOverlap,
   isCompleteSchedule,
   shiftDate,
   toInterval,
   type ScheduleSlot,
-} from "@/lib/utils/schedule";
+} from "@/lib/utils/schedule-backend";
+import {
+  calculateBookingTotal,
+  calculateDeposit,
+  getRangeRate,
+  normalizeRange,
+} from "@/lib/utils/schedule-calc";
 
 const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
   "PENDING_PAYMENT",
@@ -85,6 +93,11 @@ async function hasOverlappingSchedule(
     }
   }
 
+  console.log("Horario a evaluar:", target);
+  console.log("Reservas activas encontradas:", bookings);
+  console.log("Partidos activos encontrados:", matches);
+  console.log("Slots ocupados totales:", occupiedSlots);
+
   return occupiedSlots.some((candidate) =>
     intervalsOverlap(target, toInterval(candidate))
   );
@@ -112,6 +125,12 @@ export async function createBooking(input: BookingInput) {
   const data = bookingSchema.parse(input);
   await connectDB();
 
+  // NUEVO: Validar que la fecha y hora de inicio no sean en el pasado
+  const bookingStart = new Date(`${data.date}T${data.startTime}:00`);
+  if (bookingStart.getTime() < Date.now()) {
+    throw new Error("No se pueden crear reservas en horarios que ya pasaron.");
+  }
+
   // 1. Validar que la cancha exista y esté activa
   const court = await CourtModel.findById(data.courtId);
   if (!court || court.status !== "ACTIVE") {
@@ -127,6 +146,36 @@ export async function createBooking(input: BookingInput) {
 
   if (isOccupied) {
     throw new Error("La cancha ya tiene una reserva o partido en ese horario");
+  }
+
+  // Calcular montos de pago desde el backend (Backend-as-the-Authority)
+  const courtView: CourtView = {
+    id: court._id.toString(),
+    name: court.name,
+    format: court.format,
+    surface: court.surface,
+    isIndoor: court.isIndoor,
+    status: court.status,
+    pricing: court.pricing.map((p) => ({
+      label: p.label,
+      startTime: p.startTime,
+      endTime: p.endTime,
+      price: p.price,
+    })),
+  };
+
+  const { start, end } = normalizeRange(data.startTime, data.endTime);
+  const durationMinutes = end - start;
+  const rate = getRangeRate(courtView, start, durationMinutes);
+
+  if (rate !== null) {
+    const totalAmount = calculateBookingTotal(rate, durationMinutes);
+    const venueConfig = await VenueConfigModel.findOne({ singletonKey: "MAIN_VENUE" });
+    const depositPercentage = venueConfig?.depositPercentage ?? 0;
+    const paidAmount = calculateDeposit(totalAmount, depositPercentage);
+
+    data.payment.totalAmount = totalAmount;
+    data.payment.paidAmount = paidAmount;
   }
 
   return BookingModel.create(data);
@@ -160,4 +209,18 @@ export async function updateBookingStatus(id: string, rawStatus: string) {
   booking.status = newStatus;
   await booking.save();
   return booking;
+}
+
+export async function deleteBooking(id: string) {
+  await connectDB();
+  if (!isValidObjectId(id)) {
+    throw new Error("ID de reserva inválido");
+  }
+
+  const deletedBooking = await BookingModel.findByIdAndDelete(id);
+  if (!deletedBooking) {
+    throw new Error("No se encontró la reserva para eliminar");
+  }
+
+  return deletedBooking;
 }

@@ -1,99 +1,84 @@
 "use server";
 
-import { createBooking, updateBookingStatus } from "@/lib/services/booking.service";
 import { revalidatePath } from "next/cache";
-import type { BookingInput } from "@/lib/validations/booking.schema";
+import { createBooking, updateBookingStatus , deleteBooking} from "@/lib/services/booking.service";
+import { bookingSchema } from "@/lib/validations/booking.schema";
+import type { BookingStatus } from "@/types/domain";
 
-const BOOKING_STATUS_BY_ACTION = {
+export type BookingStatusAction = "confirm" | "cancel" | "reopen";
+
+const ACTION_TO_STATUS: Record<BookingStatusAction, BookingStatus> = {
   confirm: "CONFIRMED",
   cancel: "CANCELLED",
   reopen: "PENDING_PAYMENT",
-} as const;
+};
 
-export type BookingStatusAction = keyof typeof BOOKING_STATUS_BY_ACTION;
-
-function isBookingStatusAction(value: string): value is BookingStatusAction {
-  return Object.prototype.hasOwnProperty.call(
-    BOOKING_STATUS_BY_ACTION,
-    value,
-  );
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
-}
-
-/**
- * Server Action para crear una nueva reserva.
- * Conecta el formulario del cliente directamente con el servicio de backend.
- */
-export async function createBookingAction(input: BookingInput) {
+export async function createBookingAction(rawInput: unknown) {
   try {
-    const booking = await createBooking(input);
+    const parsed = bookingSchema.safeParse(rawInput);
+    if (!parsed.success) {
+      return { success: false, error: "Datos de reserva inválidos." };
+    }
 
-    // Revalidamos las vistas afectadas para que la UI se actualice al instante
+    const newBooking = await createBooking(parsed.data);
+
     revalidatePath("/");
-    revalidatePath("/admin/bookings");
-    revalidatePath("/courts");
+    revalidatePath("/admin/agenda");
 
-    // Serializamos el documento de Mongoose para evitar errores con Client Components
     return {
       success: true,
-      data: JSON.parse(JSON.stringify(booking)),
+      data: JSON.parse(JSON.stringify(newBooking)),
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Ocurrió un error inesperado al crear la reserva.";
     return {
       success: false,
-      error: getErrorMessage(
-        error,
-        "Ocurrió un error al procesar la reserva",
-      ),
+      error: message,
     };
   }
 }
 
-/**
- * Server Action para confirmar, cancelar o reabrir una reserva.
- */
 export async function updateBookingStatusAction(
   id: string,
-  action: BookingStatusAction,
+  action: BookingStatusAction
 ) {
-  if (!isBookingStatusAction(action)) {
-    return {
-      success: false,
-      error: "Acción de reserva inválida.",
-    };
-  }
-
   try {
-    const updatedBooking = await updateBookingStatus(
-      id,
-      BOOKING_STATUS_BY_ACTION[action],
-    );
+    const status = ACTION_TO_STATUS[action];
+    const updated = await updateBookingStatus(id, status);
 
-    if (!updatedBooking) {
-      return {
-        success: false,
-        error: "La reserva no existe o no se pudo actualizar.",
-      };
+    if (!updated) {
+      return { success: false, error: "No se encontró la reserva." };
     }
 
     revalidatePath("/");
-    revalidatePath("/admin/bookings");
-    revalidatePath("/courts");
+    revalidatePath("/admin/agenda");
 
     return {
       success: true,
-      data: JSON.parse(JSON.stringify(updatedBooking)),
+      data: JSON.parse(JSON.stringify(updated)),
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Error al actualizar el estado de la reserva.";
     return {
       success: false,
-      error: getErrorMessage(
-        error,
-        "No se pudo actualizar el estado de la reserva",
-      ),
+      error: message,
     };
+  }
+}
+
+export async function deleteBookingAction(id: string) {
+  try {
+    await deleteBooking(id);
+    
+    // Refrescamos tanto la home como la agenda para sincronizar la grilla al instante
+    revalidatePath("/"); 
+    revalidatePath("/admin/agenda");
+
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error al eliminar la reserva";
+    return { success: false, error: message };
   }
 }

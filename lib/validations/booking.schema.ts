@@ -79,6 +79,17 @@ export const bookingSchema = z
   })
   .strict()
   .superRefine((booking, ctx) => {
+    // 1. Validar que la fecha y hora de inicio no sean en el pasado
+    const bookingStart = new Date(`${booking.date}T${booking.startTime}:00`);
+    if (bookingStart.getTime() < Date.now()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["startTime"],
+        message: "No se pueden crear reservas en horarios que ya pasaron.",
+      });
+    }
+
+    // 2. Validar cruce de medianoche y rangos de hora
     const crossesMidnight =
       booking.startTime > booking.endTime && booking.endTime <= "05:00";
 
