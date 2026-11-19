@@ -117,6 +117,12 @@ export async function createBooking(input: BookingInput) {
   const data = bookingSchema.parse(input);
   await connectDB();
 
+  // NUEVO: Validar que la fecha y hora de inicio no sean en el pasado
+  const bookingStart = new Date(`${data.date}T${data.startTime}:00`);
+  if (bookingStart.getTime() < Date.now()) {
+    throw new Error("No se pueden crear reservas en horarios que ya pasaron.");
+  }
+
   // 1. Validar que la cancha exista y esté activa
   const court = await CourtModel.findById(data.courtId);
   if (!court || court.status !== "ACTIVE") {
