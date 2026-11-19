@@ -70,11 +70,12 @@ export async function updateBookingStatusAction(
 
 export async function deleteBookingAction(id: string) {
   try {
-    // Llamamos directamente al servicio pasándole el id que viene por parámetro
     await deleteBooking(id);
     
-    // Refrescamos la grilla para que el horario aparezca libre al instante
+    // Refrescamos tanto la home como la agenda para sincronizar la grilla al instante
     revalidatePath("/"); 
+    revalidatePath("/admin/agenda");
+
     return { success: true };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error al eliminar la reserva";

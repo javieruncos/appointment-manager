@@ -3,12 +3,14 @@ import { connectDB } from "@/lib/db/connect";
 import { BookingModel } from "@/lib/db/models/Booking";
 import { CourtModel } from "@/lib/db/models/Court";
 import { TournamentMatchModel } from "@/lib/db/models/TournamentMatch";
+import { VenueConfigModel } from "@/lib/db/models/VenueConfig";
 import {
   bookingSchema,
   updateBookingSchema,
   type BookingInput,
 } from "@/lib/validations/booking.schema";
 import type { BookingStatus, TournamentMatchStatus } from "@/types/domain";
+import type { CourtView } from "@/types/view";
 import {
   intervalsOverlap,
   isCompleteSchedule,
@@ -16,6 +18,12 @@ import {
   toInterval,
   type ScheduleSlot,
 } from "@/lib/utils/schedule-backend";
+import {
+  calculateBookingTotal,
+  calculateDeposit,
+  getRangeRate,
+  normalizeRange,
+} from "@/lib/utils/schedule-calc";
 
 const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
   "PENDING_PAYMENT",
@@ -138,6 +146,36 @@ export async function createBooking(input: BookingInput) {
 
   if (isOccupied) {
     throw new Error("La cancha ya tiene una reserva o partido en ese horario");
+  }
+
+  // Calcular montos de pago desde el backend (Backend-as-the-Authority)
+  const courtView: CourtView = {
+    id: court._id.toString(),
+    name: court.name,
+    format: court.format,
+    surface: court.surface,
+    isIndoor: court.isIndoor,
+    status: court.status,
+    pricing: court.pricing.map((p) => ({
+      label: p.label,
+      startTime: p.startTime,
+      endTime: p.endTime,
+      price: p.price,
+    })),
+  };
+
+  const { start, end } = normalizeRange(data.startTime, data.endTime);
+  const durationMinutes = end - start;
+  const rate = getRangeRate(courtView, start, durationMinutes);
+
+  if (rate !== null) {
+    const totalAmount = calculateBookingTotal(rate, durationMinutes);
+    const venueConfig = await VenueConfigModel.findOne({ singletonKey: "MAIN_VENUE" });
+    const depositPercentage = venueConfig?.depositPercentage ?? 0;
+    const paidAmount = calculateDeposit(totalAmount, depositPercentage);
+
+    data.payment.totalAmount = totalAmount;
+    data.payment.paidAmount = paidAmount;
   }
 
   return BookingModel.create(data);
