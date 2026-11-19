@@ -17,6 +17,8 @@ export type BookingStatus =
   | "CANCELLED";
 export type PaymentMethod = "CASH" | "TRANSFER" | "MERCADOPAGO" | "NONE";
 
+export type UserRole = "ADMIN" | "STAFF";
+
 export interface Timestamps {
   createdAt?: Date;
   updatedAt?: Date;
@@ -81,6 +83,14 @@ export interface Booking extends Timestamps {
   payment: BookingPayment;
   tournamentMatchId?: EntityId | null;
   notes?: string;
+}
+
+export interface User extends Timestamps {
+  id?: EntityId;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
 }
 
 export type TournamentFormat =
